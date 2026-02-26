@@ -14,7 +14,6 @@ app.use(express.json());
 
 app.use(cors()); 
 
-/* ================= AUTH MIDDLEWARE ================= */
 const authMiddleware = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -40,17 +39,14 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-/* ================= ROOT ================= */
 app.get("/", (req, res) => {
   res.send("Hello from Node API");
 });
 
-/* ================= REGISTER ================= */
 app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Check existing user
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -59,7 +55,6 @@ app.post("/api/register", async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
@@ -78,7 +73,6 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-/* ================= LOGIN ================= */
 app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -92,7 +86,6 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({
@@ -101,7 +94,6 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    // Create token
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -119,7 +111,6 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-/* ================= START ATTENDANCE ================= */
 app.post("/api/attendance/start", authMiddleware, async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
@@ -130,7 +121,6 @@ app.post("/api/attendance/start", authMiddleware, async (req, res) => {
 
     const today = new Date().toISOString().split("T")[0];
 
-    // Only one attendance per day
     const alreadyMarked = await Attendance.findOne({
       userId,
       date: today,
@@ -143,7 +133,6 @@ app.post("/api/attendance/start", authMiddleware, async (req, res) => {
       });
     }
 
-    // Distance calculation
     const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
       const R = 6371;
       const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -193,7 +182,6 @@ app.post("/api/attendance/start", authMiddleware, async (req, res) => {
   }
 });
 
-/* ================= STOP ATTENDANCE ================= */
 app.post("/api/attendance/stop", authMiddleware, async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
@@ -266,8 +254,6 @@ app.post("/api/attendance/stop", authMiddleware, async (req, res) => {
   }
 });
 
-/* ================= ATTENDANCE HISTORY ================= */
-/* ================= ATTENDANCE HISTORY (PAGINATED) ================= */
 app.get("/api/attendance/history", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -392,7 +378,6 @@ app.get("/api/attendance/history", authMiddleware, async (req, res) => {
   }
 });
 
-/* ================= PAYROLL LIST ================= */
 app.get("/api/payroll", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -486,7 +471,6 @@ app.get("/api/payroll", authMiddleware, async (req, res) => {
   }
 });
 
-/* ================= CREATE PAYROLL ================= */
 app.post("/api/payroll/create", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -495,7 +479,6 @@ app.post("/api/payroll/create", authMiddleware, async (req, res) => {
     const grossSalary = parseFloat(gross_salary);
     const advanceAmount = parseFloat(advance || 0);
 
-    // Prevent duplicate payroll
     const existingPayroll = await Payroll.findOne({
       userId,
       month,
@@ -509,7 +492,7 @@ app.post("/api/payroll/create", authMiddleware, async (req, res) => {
       });
     }
 
-    // Get month date range
+
     const startDate = `${year}-${month.padStart(2, "0")}-01`;
     const endDate = new Date(year, month, 0).toISOString().split("T")[0];
 
@@ -531,12 +514,10 @@ app.post("/api/payroll/create", authMiddleware, async (req, res) => {
 
         const workingMinutes = Math.floor(diffMs / 60000);
 
-        // OT > 480 mins
         if (workingMinutes > 480) {
           totalOtMinutes += workingMinutes - 480;
         }
 
-        // Late check (after 10AM)
         const officeStart = new Date(record.date + "T10:00:00");
         const checkIn = new Date(record.startTime);
 
@@ -548,12 +529,10 @@ app.post("/api/payroll/create", authMiddleware, async (req, res) => {
 
     const otHours = (totalOtMinutes / 60).toFixed(2);
 
-    // OT rate = (Gross / 30 days / 8 hours)
     const perDaySalary = grossSalary / 30;
     const perHourSalary = perDaySalary / 8;
     const otAmount = (perHourSalary * otHours).toFixed(2);
 
-    // Deductions
     const providentFund = (grossSalary * 0.12).toFixed(2);
     const esi = (grossSalary * 0.0075).toFixed(2);
     const professionalTax = "130.00";
@@ -605,7 +584,7 @@ app.post("/api/payroll/create", authMiddleware, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-/* ================= ATTENDANCE STATUS ================= */
+
 app.get("/api/attendance/status", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
