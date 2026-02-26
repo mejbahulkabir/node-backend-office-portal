@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -6,7 +7,6 @@ const jwt = require("jsonwebtoken");
 const User = require("./models/user.models.js");
 const Attendance = require("./models/attendance.models.js");
 const Payroll = require("./models/payroll.models.js");
-require("dotenv").config();
 
 const app = express();
 
