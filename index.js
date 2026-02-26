@@ -1,14 +1,18 @@
 const express = require("express");
+const cors = require("cors");
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("./models/user.models.js");
 const Attendance = require("./models/attendance.models.js");
 const Payroll = require("./models/payroll.models.js");
+require("dotenv").config();
 
 const app = express();
 
 app.use(express.json());
+
+app.use(cors()); 
 
 /* ================= AUTH MIDDLEWARE ================= */
 const authMiddleware = (req, res, next) => {
@@ -24,7 +28,7 @@ const authMiddleware = (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    const decoded = jwt.verify(token, "supersecretkey");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = decoded; // { id, role }
     next();
@@ -100,7 +104,7 @@ app.post("/api/login", async (req, res) => {
     // Create token
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      "supersecretkey",
+      process.env.JWT_SECRET,
       { expiresIn: "7d" },
     );
 
@@ -667,18 +671,32 @@ app.get("/api/attendance/status", authMiddleware, async (req, res) => {
   }
 });
 /* ================= MONGODB ================= */
+// mongoose
+//   .connect(
+//     "mongodb+srv://kabir_db_user:TvjIiTVEbSqdjmVG@backenddb.r6udfyt.mongodb.net/?appName=BackendDB",
+//   ) 
+// //mongodb+srv://kabir_db_user:TvjIiTVEbSqdjmVG@backenddb.r6udfyt.mongodb.net/officePortal?retryWrites=true&w=majority
+//   //mongodb+srv://kabir_db_user:TvjIiTVEbSqdjmVG@backenddb.r6udfyt.mongodb.net/?appName=BackendDB
+//   .then(() => {
+//     console.log("Connected!");
+//     app.listen(3000, () => {
+//       console.log("Server is running on port 3000");
+//     });
+//   })
+//   .catch(() => {
+//     console.log("Connection failed");
+//   });
 mongoose
-  .connect(
-    "mongodb+srv://kabir_db_user:TvjIiTVEbSqdjmVG@backenddb.r6udfyt.mongodb.net/?appName=BackendDB",
-  ) 
-//mongodb+srv://kabir_db_user:TvjIiTVEbSqdjmVG@backenddb.r6udfyt.mongodb.net/officePortal?retryWrites=true&w=majority
-  //mongodb+srv://kabir_db_user:TvjIiTVEbSqdjmVG@backenddb.r6udfyt.mongodb.net/?appName=BackendDB
+  .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("Connected!");
-    app.listen(3000, () => {
-      console.log("Server is running on port 3000");
+    console.log("MongoDB Connected Successfully!");
+
+    const PORT = process.env.PORT || 5000;
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
     });
   })
-  .catch(() => {
-    console.log("Connection failed");
+  .catch((err) => {
+    console.error("MongoDB Connection Failed:", err.message);
   });
